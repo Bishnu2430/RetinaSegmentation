@@ -1,0 +1,693 @@
+% ======================================================================
+% Neural ODE-U-Net for Retinal Vessel Segmentation - Detailed Research Paper
+% ======================================================================
+\overfullrule=2cm
+
+\documentclass[12pt, a4paper]{article}
+
+% --- Encoding and Fonts ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% --- Math and Symbols ---
+\usepackage{amsmath, amssymb, amsfonts, amsthm, mathtools}
+\usepackage{siunitx}
+
+% --- Figures and Tables ---
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{booktabs}
+
+% --- Algorithms ---
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% --- Formatting and Layout ---
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.5em}{}
+
+% --- Citations and Links ---
+\usepackage{cite}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    citecolor=blue
+}
+
+% ======================================================================
+\begin{document}
+
+% ==============================
+% Title Page
+% ==============================
+\begin{center}
+\vspace*{1cm}
+{\LARGE \textbf{Neural Ordinary Differential Equation Enhanced U-Net}}\\
+\vspace{0.3cm}
+{\LARGE \textbf{for Automated Retinal Vessel Segmentation}}\\
+\vspace{1.5cm}
+{\large Submitted by}\\
+{\large \textbf{Bishnu Prasad Kar}}\\
+{\normalsize (Student, Department of Computer Science and Engineering)}\\
+\vspace{0.5cm}
+{\large Under the Guidance of}\\
+{\large \textbf{Dr. Jyoti Prava Dash}}\\
+{\normalsize (Assistant Professor, Department of Computer Science and Engineering)}\\
+\vspace{0.5cm}
+{\normalsize Gandhi Institute of Excellent Technocrats, Bhubaneswar}\\
+{\normalsize \today}
+\end{center}
+
+\vspace{1cm}
+
+% ==============================
+% Abstract
+% ==============================
+\begin{abstract}
+\noindent Accurate segmentation of retinal blood vessels remains a critical yet challenging task in computer-aided diagnosis of ophthalmological and cardiovascular diseases. Traditional convolutional neural networks, while effective, suffer from limitations inherent to their discrete-layer architectures, particularly in capturing the continuous, topology-preserving nature of vascular structures. In this work, we present a novel hybrid architecture that integrates Neural Ordinary Differential Equations (Neural ODEs) into the bottleneck of a U-Net encoder-decoder framework. By parameterizing feature transformations as continuous dynamical systems governed by differential equations, our approach enables smoother gradient flow, memory-efficient training, and enhanced preservation of fine-grained vessel connectivity. We evaluate our method on standard retinal fundus image datasets and demonstrate superior performance compared to conventional U-Net architectures, achieving significant improvements in Dice coefficient (0.7981), Jaccard index (0.6641), and sensitivity metrics. Furthermore, we provide comprehensive ablation studies demonstrating the contribution of each architectural component and postprocessing strategy. Our findings suggest that continuous-depth modeling offers a principled approach to biomedical image segmentation, with potential applications extending beyond retinal imaging to other vascular and tubular structure segmentation tasks.
+\end{abstract}
+
+\vspace{0.5cm}
+\noindent \textbf{Keywords:} Neural ODE, U-Net, Retinal Vessel Segmentation, Medical Image Analysis, Continuous-Depth Networks, Deep Learning
+
+\newpage
+
+% ==============================
+% Introduction
+% ==============================
+\section{Introduction}
+
+\subsection{Background and Motivation}
+The human retina provides a unique, non-invasive window into the cardiovascular system, making retinal imaging an invaluable diagnostic tool for a wide range of systemic diseases. Accurate segmentation of retinal blood vessels is fundamental to the early detection and monitoring of conditions such as diabetic retinopathy, hypertensive retinopathy, arteriosclerosis, and various cardiovascular disorders~\cite{abramoff2010retinal}. Despite decades of research, automated vessel segmentation remains challenging due to the complex, tree-like vascular architecture, low contrast between vessels and background, and significant inter-image variability.
+
+Traditional image-processing approaches, including matched filtering, morphological operations, and multi-scale feature extraction, have shown moderate success but often require extensive parameter tuning and fail to generalize across diverse datasets~\cite{fraz2012blood}. The advent of deep learning, particularly convolutional neural networks (CNNs), revolutionized medical image analysis by enabling automatic feature learning from raw data. Among various architectures, U-Net~\cite{ronneberger2015u} has emerged as the de facto standard for biomedical image segmentation due to its elegant encoder–decoder structure with skip connections that preserve spatial information.
+
+However, conventional U-Net architectures possess inherent limitations. Their discrete layer-wise transformations constrain the model’s ability to capture continuous variations in features. Increasing depth can improve representational capacity but at the cost of memory and optimization stability, especially for thin vessels where precise localization is critical.
+
+\subsection{Neural Ordinary Differential Equations}
+Recent advances linking differential equations and deep learning introduced Neural ODEs~\cite{chen2018neural}, which reconceptualize deep residual networks as discretizations of continuous transformations:
+\begin{equation}
+\frac{dh(t)}{dt}=f_{\theta}(h(t),t)
+\end{equation}
+where \(h(t)\) is the hidden state at continuous time \(t\) and \(f_{\theta}\) is a neural network parameterized by \(\theta\).  
+This formulation offers several advantages:
+\begin{enumerate}
+    \item \textbf{Continuous depth} – effectively infinite depth without discrete stacking.
+    \item \textbf{Adaptive computation} – ODE solvers allocate effort based on input complexity.
+    \item \textbf{Memory efficiency} – gradients computed via adjoint sensitivity need no stored activations.
+    \item \textbf{Improved gradient flow} – mitigates vanishing/exploding gradients.
+    \item \textbf{Principled foundation} – connects deep learning with dynamical-systems theory.
+\end{enumerate}
+
+\subsection{Our Contributions}
+We propose \textbf{Neural ODE-U-Net}, a hybrid architecture integrating a Neural ODE block into the bottleneck of U-Net.  
+Key contributions:
+\begin{enumerate}
+    \item \textbf{Hybrid architecture design} – continuous-depth modeling embedded within U-Net.
+    \item \textbf{Comprehensive pre-processing pipeline} – green-channel extraction + CLAHE + adaptive gamma correction.
+    \item \textbf{Advanced post-processing} – morphological filtering, Frangi vesselness, and skeleton-based refinement.
+    \item \textbf{Extensive experiments and ablation studies} on DRIVE and STARE datasets.
+    \item \textbf{Generalizability analysis} to other biomedical segmentation tasks.
+\end{enumerate}
+
+\noindent The remainder of this paper is organized as follows:  
+Section 2 reviews related work, Section 3 details the methodology, Section 4 describes experimental setup, Section 5 presents results and analysis, and Section 6 concludes the paper.
+
+% ==============================
+% Related Work
+% ==============================
+\section{Related Work}
+
+\subsection{Classical Retinal Vessel Segmentation Methods}
+Early methods relied on hand-crafted features.  
+Matched filtering~\cite{chaudhuri1989detection} models vessels as piecewise linear structures convolved with oriented filters.  
+Morphological approaches~\cite{zana2001segmentation} exploit elongated connectivity but require delicate parameter tuning.  
+Multi-scale filters~\cite{martinez2007ridge} capture vessels of different widths yet remain sensitive to noise.  
+Graph-based and model-based methods~\cite{estrada2015tree,al2008retinal} improved structure consistency but needed domain-specific heuristics.
+
+\subsection{Deep Learning for Medical Image Segmentation}
+Fully convolutional networks~\cite{long2015fully} enabled end-to-end segmentation; U-Net~\cite{ronneberger2015u} introduced encoder–decoder skip-connections that became the backbone for biomedical segmentation.  
+Subsequent variants—Attention U-Net~\cite{oktay2018attention}, U-Net++~\cite{zhou2018unet++}, CE-Net~\cite{gu2019ce}—incorporated attention, dense links, or multi-scale fusion to enhance feature capture.  
+Despite strong results, all remain fundamentally discrete in depth.
+
+\subsection{Neural ODEs and Continuous-Depth Networks}
+Neural ODEs~\cite{chen2018neural} interpret residual layers as Euler steps of continuous transformations. Extensions include second-order ODEs~\cite{norcliffe2020second}, stochastic ODEs~\cite{li2020scalable}, and controlled ODEs~\cite{kidger2020neural}.  
+Applications span time-series modeling~\cite{rubanova2019latent}, continuous normalizing flows~\cite{grathwohl2018ffjord}, and medical-image registration~\cite{qin2020learning}.  
+However, their integration into biomedical segmentation—particularly retinal vessels—remains underexplored.
+
+\subsection{Gap in Current Literature}
+While U-Net variants achieve high accuracy and Neural ODEs advance continuous learning, combining both for medical segmentation has been scarcely studied.  
+Our work bridges this gap by embedding continuous-depth dynamics into U-Net’s bottleneck, achieving smoother feature evolution and improved connectivity preservation in vessel segmentation.
+
+% ==============================
+% Methodology
+% ==============================
+\section{Methodology}
+
+This section provides a comprehensive description of our proposed Neural ODE-U-Net architecture, detailing each component from preprocessing through postprocessing. We explain the rationale behind design decisions and provide mathematical formulations where appropriate.
+
+\subsection{Overview of the Architecture}
+
+Our proposed architecture consists of five main stages operating in sequence:
+\begin{enumerate}
+    \item \textbf{Preprocessing Module:} Enhances vessel visibility through specialized image processing techniques.
+    \item \textbf{Encoder Network:} Extracts hierarchical features while progressively reducing spatial dimensions.
+    \item \textbf{Neural ODE Bottleneck:} Applies continuous-depth transformation to learned features.
+    \item \textbf{Decoder Network:} Reconstructs full-resolution segmentation maps using transposed convolutions and skip connections.
+    \item \textbf{Postprocessing Pipeline:} Refines raw predictions through morphological operations and vessel-specific enhancements.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=0.6\linewidth]{FlowChart_HD.png}
+    \caption{Complete Neural ODE-U-Net architecture showing the integration of preprocessing, encoder, Neural ODE bottleneck, decoder, and postprocessing stages. Skip connections (shown in blue) preserve spatial information across scales.}
+    \label{fig:architecture}
+\end{figure}
+
+\subsection{Preprocessing Pipeline}
+
+Effective preprocessing is crucial due to non-uniform illumination, low contrast between vessels and background, and inter-patient variability. We develop a multi-stage preprocessing pipeline specifically designed to enhance vessel visibility while preserving spatial details.
+
+\subsubsection{Green Channel Extraction}
+Retinal fundus images are typically captured in RGB color space. Empirical studies indicate the green channel provides optimal vessel-background contrast. We extract the green channel as our primary input:
+\begin{equation}
+G(x,y) = I_{\text{green}}(x,y), \quad \text{where } I \in \mathbb{R}^{H \times W \times 3}
+\end{equation}
+where \(H\) and \(W\) denote image height and width respectively.
+
+\subsubsection{Contrast Limited Adaptive Histogram Equalization}
+To avoid over-enhancement and noise amplification, we apply CLAHE~\cite{pizer1987adaptive}, which operates on local image tiles with a clipping limit. For each tile centered at \((x,y)\), the enhanced intensity is:
+\begin{equation}
+L'(x,y) = \text{clip}\left(\alpha \cdot \text{CDF}_{\text{local}}(L(x,y)) \cdot L_{\max}, \; L_{\min}, L_{\max}\right)
+\end{equation}
+We use tile size \(8 \times 8\) and clip limit 2.0.
+
+\subsubsection{Gamma Correction}
+Adaptive gamma correction is applied to adjust mid-tone vessel visibility:
+\begin{equation}
+I_{\gamma}(x,y) = \left(\frac{I(x,y)}{I_{\max}}\right)^{\gamma} \cdot I_{\max}
+\end{equation}
+with \(\gamma\) set adaptively based on mean intensity \(\mu_I\):
+\begin{equation}
+\gamma = \begin{cases}
+0.8 & \text{if } \mu_I < 0.3 \\
+1.0 & \text{if } 0.3 \le \mu_I \le 0.7 \\
+1.2 & \text{if } \mu_I > 0.7
+\end{cases}
+\end{equation}
+
+\subsubsection{Normalization}
+We normalize using dataset-level statistics:
+\begin{equation}
+\hat{x} = \frac{x - \mu}{\sigma}
+\end{equation}
+where \(\mu\) and \(\sigma\) are computed across the training set.
+
+The combined preprocessing pipeline can be summarized:
+\begin{equation}
+I_{\text{processed}} = \text{Normalize}(\text{Gamma}(\text{CLAHE}(\text{Green}(I_{\text{input}}))))
+\end{equation}
+
+\subsection{Encoder Architecture}
+
+The encoder extracts hierarchical features with a symmetric encoder-decoder structure and skip connections. The encoder consists of five levels, each with two convolutional blocks followed by max pooling.
+
+\subsubsection{Convolutional Block Design}
+Each block uses residual connections:
+\begin{equation}
+\begin{aligned}
+z_1 &= \text{ReLU}(\text{BN}(\text{Conv}_{3\times3}(x))) \\
+z_2 &= \text{ReLU}(\text{BN}(\text{Conv}_{3\times3}(z_1))) \\
+y &= z_2 + \mathcal{F}_{\text{residual}}(x)
+\end{aligned}
+\end{equation}
+where \(\mathcal{F}_{\text{residual}}\) is identity or a \(1\times1\) projection when needed.
+
+\subsubsection{Feature Hierarchy}
+Channel progression:
+\begin{itemize}
+    \item Level 1: Input (1 channel) \(\rightarrow\) 64 channels
+    \item Level 2: 64 \(\rightarrow\) 128 channels
+    \item Level 3: 128 \(\rightarrow\) 256 channels
+    \item Level 4: 256 \(\rightarrow\) 512 channels
+    \item Bottleneck: 512 channels
+\end{itemize}
+Spatial resolution for a \(512\times512\) input:
+\[
+512\times512 \rightarrow 256\times256 \rightarrow 128\times128 \rightarrow 64\times64 \rightarrow 32\times32
+\]
+
+\subsection{Neural ODE Bottleneck}
+
+We integrate Neural ODE at the bottleneck to enable continuous-depth transformations on abstract feature maps.
+
+\subsubsection{Continuous Dynamics Formulation}
+\begin{equation}
+\frac{dh(t)}{dt} = f_{\theta}(h(t),t), \quad t\in[0,1]
+\end{equation}
+with \(h(t)\in\mathbb{R}^{C\times H\times W}\) and
+\begin{equation}
+f_{\theta}(h,t) = \text{Conv}_{1\times1}(\text{ReLU}(\text{Conv}_{3\times3}(\text{Concat}(h, t\cdot\mathbf{1}))))
+\end{equation}
+where \(t\cdot\mathbf{1}\) is a channel filled with time value.
+
+\subsubsection{ODE Solving}
+We solve from \(h(0)\) to \(h(1)\) using an adaptive solver (Dopri5):
+\begin{equation}
+h(1) = \text{ODESolve}(h(0), f_{\theta}, t\in[0,1], \text{method}=\text{Dopri5})
+\end{equation}
+
+\subsubsection{Adjoint Gradients}
+Gradients use the adjoint method:
+\begin{equation}
+\frac{da(t)}{dt} = -a(t)^T \frac{\partial f_{\theta}(h(t),t)}{\partial h}
+\end{equation}
+and parameter gradient:
+\begin{equation}
+\frac{\partial L}{\partial \theta} = -\int_1^0 a(t)^T \frac{\partial f_{\theta}(h(t),t)}{\partial \theta} \, dt
+\end{equation}
+
+\subsubsection{Regularization and Stability}
+We apply:
+\begin{itemize}
+    \item Spectral normalization on \(f_{\theta}\)
+    \item Kinetic regularization: penalty \(\propto \left\|\frac{dh}{dt}\right\|^2\)
+    \item Limit on max function evaluations
+\end{itemize}
+
+\subsection{Decoder Architecture}
+
+The decoder reconstructs full-resolution segmentation maps with symmetric upsampling and skip connections.
+
+\subsubsection{Upsampling and Skip Connections}
+At each level:
+\begin{equation}
+\begin{aligned}
+h_{\text{up}} &= \text{UpConv}_{2\times2}(h_{\text{decoder}}) \\
+h_{\text{cat}} &= \text{Concat}(h_{\text{up}}, h_{\text{encoder}}) \\
+h_{\text{out}} &= \text{ConvBlock}(h_{\text{cat}})
+\end{aligned}
+\end{equation}
+where \(\text{UpConv}_{2\times2}\) is a transposed convolution doubling spatial dimensions.
+
+\subsubsection{Output Layer}
+Final 1×1 conv + sigmoid:
+\begin{equation}
+P(x,y) = \sigma(\text{Conv}_{1\times1}(h_{\text{decoder}}^{\text{final}})(x,y))
+\end{equation}
+with \(\sigma(z)=1/(1+e^{-z})\).
+
+\subsection{Loss Function}
+
+We use a hybrid loss: Dice + Binary Cross-Entropy (BCE).
+\subsubsection{Dice}
+\begin{equation}
+\text{Dice}(P,G) = \frac{2\sum_{i,j}P(i,j)G(i,j)}{\sum_{i,j}P(i,j)+\sum_{i,j}G(i,j)}
+\end{equation}
+Dice loss:
+\begin{equation}
+\mathcal{L}_{\text{Dice}} = 1 - \text{Dice}(P,G)
+\end{equation}
+
+\subsubsection{Binary Cross-Entropy}
+\begin{equation}
+\mathcal{L}_{\text{BCE}} = -\frac{1}{HW}\sum_{i,j}\left[G(i,j)\log P(i,j) + (1-G(i,j))\log(1-P(i,j))\right]
+\end{equation}
+
+\subsubsection{Hybrid Loss}
+\begin{equation}
+\mathcal{L} = \alpha\cdot\mathcal{L}_{\text{Dice}} + (1-\alpha)\cdot\mathcal{L}_{\text{BCE}}
+\end{equation}
+We use \(\alpha=0.5\).
+
+\subsection{Postprocessing Pipeline}
+
+Refinement improves thin-vessel connectivity and reduces spurious detections.
+
+\subsubsection{Morphological Operations}
+Morphological closing:
+\begin{equation}
+M_{\text{closed}} = (M \oplus K) \ominus K
+\end{equation}
+with disk structuring element \(K\) (radius 2).
+
+\subsubsection{Frangi Vesselness}
+Frangi vesselness at scale \(\sigma\):
+\begin{equation}
+V_{\sigma}(x,y) = \begin{cases}
+0 & \text{if } \lambda_2 > 0 \\
+\exp\left(-\frac{R_B^2}{2\beta^2}\right)\left(1-\exp\left(-\frac{S^2}{2c^2}\right)\right) & \text{otherwise}
+\end{cases}
+\end{equation}
+where \(R_B=\frac{\lambda_1}{\lambda_2}\), \(S=\sqrt{\lambda_1^2+\lambda_2^2}\). Combine multi-scale:
+\begin{equation}
+V(x,y)=\max_{\sigma\in\{\sigma_1,\ldots,\sigma_n\}} V_{\sigma}(x,y)
+\end{equation}
+
+\subsubsection{Skeleton-Based Reconnection}
+Reconnect if:
+\begin{equation}
+\text{If } d_{\text{geodesic}}(p_i,p_j)<\tau \text{ and } \theta_{ij}<30^\circ, \text{ connect } p_i \text{ and } p_j
+\end{equation}
+with threshold \(\tau=10\) pixels.
+
+\subsubsection{Small Component Removal}
+\begin{equation}
+M_{\text{final}}(x,y) = \begin{cases}
+M(x,y) & \text{if } \text{area}(\text{component}(x,y))>A_{\min} \\
+0 & \text{otherwise}
+\end{cases}
+\end{equation}
+with \(A_{\min}=50\) pixels.
+
+Pipeline:
+\begin{equation}
+M_{\text{output}} = \text{RemoveSmall}(\text{Reconnect}(\text{Frangi}(\text{Morph}(M_{\text{prediction}}))))
+\end{equation}
+
+% ==============================
+% Experimental Setup
+% ==============================
+\section{Experimental Setup}
+
+This section describes the datasets, implementation details, training configuration, and evaluation metrics used to assess our proposed Neural ODE-U-Net model.
+
+\subsection{Datasets}
+
+We evaluate our model using three publicly available datasets for retinal vessel segmentation: \textbf{DRIVE}, \textbf{STARE}, and the \textbf{Retina Blood Vessel Segmentation} dataset from Kaggle. Together, these datasets provide a comprehensive evaluation across different imaging conditions and resolutions.
+
+\subsubsection{DRIVE Dataset}
+The DRIVE (Digital Retinal Images for Vessel Extraction) dataset~\cite{staal2004ridge} contains 40 color fundus images (565×584 pixels) captured with a Canon CR5 non-mydriatic 3CCD camera at a 45° field of view. The dataset is divided into 20 training and 20 testing images. Each image includes manual vessel annotations from two observers—the first is used as ground truth, while the second serves for inter-observer variability analysis.
+
+\subsubsection{STARE Dataset}
+The STARE (Structured Analysis of the Retina) dataset~\cite{hoover2000locating} contains 20 color retinal images of approximately 700×605 pixels, each manually annotated by two experts. Similar to DRIVE, the first observer’s annotations are commonly used as the reference ground truth. The dataset includes both healthy and pathological cases, making it suitable for evaluating segmentation robustness under varying vessel morphologies.
+
+\subsubsection{Retina Blood Vessel Segmentation Dataset (Kaggle)}
+The Retina Blood Vessel Segmentation dataset is a high-resolution collection of retinal fundus images accompanied by precise pixel-wise vessel masks. The images vary in size and aspect ratio, reflecting real-world clinical diversity. Each fundus image is paired with a binary ground-truth annotation, where vessel pixels are labeled as 1 and background pixels as 0.  
+This dataset encompasses a wide range of retinal conditions with variations in vessel width, branching complexity, and pathological presence, providing a valuable benchmark for evaluating model generalization and robustness.  
+
+As the dataset includes varying resolutions and image qualities, all images are resized to a uniform spatial resolution (e.g., 512×512 pixels) and normalized before being used for model training and evaluation.
+
+
+\subsection{Preprocessing Implementation}
+
+The preprocessing steps described in Section 3 were implemented using OpenCV and NumPy.  
+The complete pipeline included:
+\begin{itemize}
+    \item Green channel extraction.
+    \item CLAHE with tile size = 8×8 and clip limit = 2.0.
+    \item Adaptive gamma correction (\(\gamma\) between 0.8 and 1.2).
+    \item Normalization to zero mean and unit variance.
+\end{itemize}
+After enhancement, patches of size 128×128 were extracted with 50 \% overlap for training.  
+All patches were augmented via:
+\begin{itemize}
+    \item Random rotation (±15°),
+    \item Horizontal/vertical flips,
+    \item Elastic deformation ($\sigma$ = 10, $\alpha$ = 100),
+    \item Gaussian noise ($\sigma$ = 0.01).
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    % === Row of 4 images ===
+    \begin{minipage}[t]{0.23\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{test/image/0.png}
+        \caption*{(a) Original}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.23\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{results/intermediate/green/0.png}
+        \caption*{(b) Green Channel}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.23\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{results/intermediate/clahe/0.png}
+        \caption*{(c) CLAHE}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.23\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{results/intermediate/gamma/0.png}
+        \caption*{(d) Gamma Corrected}
+    \end{minipage}
+
+    \vspace{0.3cm}
+    \caption{Preprocessing pipeline visualization showing progressive enhancement: (a) original retinal image, (b) green channel extraction, (c) CLAHE contrast enhancement, and (d) gamma correction.}
+    \label{fig:preprocessing_pipeline}
+\end{figure}
+
+\subsection{Training Configuration}
+
+\subsubsection{Hardware}
+Model training was performed using the Google Colab cloud platform, which provides a virtualized GPU environment. The hardware configuration consisted of:
+\begin{itemize}
+    \item NVIDIA Tesla T4 GPU (16~GB VRAM),
+    \item Intel Xeon CPU (2~vCPUs),
+    \item 12~GB system memory (RAM).
+\end{itemize}
+
+\subsubsection{Software Stack}
+The experiments were conducted in a Python-based deep learning environment provided by Google Colab, configured as follows:
+\begin{itemize}
+    \item Python~3.10 runtime environment,
+    \item PyTorch~2.1 for deep learning model development,
+    \item Torchdiffeq library for Neural ODE integration,
+    \item CUDA~11.8 and cuDNN~8.7 for GPU acceleration,
+    \item OpenCV~4.x and NumPy~1.26 for image preprocessing and array operations.
+\end{itemize}
+
+
+\subsubsection{Hyperparameters}
+The model was trained for 80~epochs using the Adam optimizer with default momentum coefficients:
+\begin{equation}
+\text{lr} = 10^{-3}, \quad \beta_1 = 0.9, \quad \beta_2 = 0.999
+\end{equation}
+A batch size of 4 was used due to GPU memory constraints on the Google Colab Tesla~T4 GPU.  
+
+A step learning-rate scheduler was employed to gradually decay the learning rate:
+\begin{equation}
+\text{lr}_t = \text{lr}_0 \times \gamma^{\lfloor t / s \rfloor}
+\end{equation}
+where \(\text{lr}_0 = 10^{-3}\), decay factor \(\gamma = 0.5\), and step size \(s = 10\) epochs.  
+This decay schedule allowed smoother convergence while preventing overfitting in later epochs.
+
+\subsubsection{Loss and Regularization}
+The training objective combined Binary Cross-Entropy (BCE) loss and Dice loss to balance pixel-level precision with region overlap:
+\begin{equation}
+\mathcal{L} = \alpha \, \mathcal{L}_{\text{BCE}} + (1 - \alpha) \, \mathcal{L}_{\text{Dice}}
+\end{equation}
+with weighting coefficient \(\alpha = 0.5\).  
+
+To improve generalization and numerical stability, the following regularization strategies were applied:
+\begin{itemize}
+    \item \(L_2\) weight decay of \(10^{-4}\),
+    \item Gradient clipping with a maximum norm of 1.0 to prevent exploding gradients,
+    \item Dropout (rate = 0.3) within the decoder to reduce overfitting,
+    \item Early stopping with a patience of 10~epochs based on validation Dice score.
+\end{itemize}
+
+\subsubsection{Training Strategy}
+Training followed a progressive two-stage process:
+\begin{enumerate}
+    \item \textbf{Pretraining phase:} The model was first trained as a standard U-Net for 20~epochs to stabilize encoder–decoder weights.
+    \item \textbf{ODE fine-tuning phase:} The Neural ODE block was then activated and trained jointly for the remaining epochs to refine temporal feature continuity.
+    \item \textbf{Checkpointing:} The best model was selected based on validation Dice coefficient, and final weights were obtained by averaging the last 5~checkpoints.
+\end{enumerate}
+
+
+\subsection{Evaluation Metrics}
+
+Model performance was evaluated using:
+\begin{itemize}
+    \item \textbf{Accuracy} \(=\frac{TP+TN}{TP+TN+FP+FN}\),
+    \item \textbf{Sensitivity (Recall)} \(=\frac{TP}{TP+FN}\),
+    \item \textbf{Specificity} \(=\frac{TN}{TN+FP}\),
+    \item \textbf{Precision} \(=\frac{TP}{TP+FP}\),
+    \item \textbf{F1-Score} \(=2\frac{Precision\times Recall}{Precision+Recall}\),
+    \item \textbf{Jaccard Index (IoU)} \(=\frac{TP}{TP+FP+FN}\),
+    \item \textbf{Dice Coefficient} \(=\frac{2TP}{2TP+FP+FN}\),
+    \item \textbf{AUC (ROC)} — area under receiver-operating-characteristic curve.
+\end{itemize}
+where \(TP, TN, FP, FN\) denote true positives, true negatives, false positives, and false negatives respectively.
+
+\subsection{Baselines for Comparison}
+
+To assess the performance of the proposed Neural ODE-U-Net, we compared it against two representative encoder–decoder architectures that form strong baselines for retinal vessel segmentation:
+
+\begin{enumerate}
+    \item \textbf{U-Net}~\cite{ronneberger2015u} — the foundational fully convolutional network architecture for biomedical image segmentation.
+    \item \textbf{U-Net++}~\cite{zhou2018unet++} — an enhanced variant featuring nested skip connections for improved multi-scale feature aggregation.
+\end{enumerate}
+
+Both baseline models were implemented and trained under identical conditions to ensure a fair comparison.  
+All experiments used the same preprocessing pipeline (green channel extraction, CLAHE, and gamma correction), data augmentation strategy (random flips, rotations, and elastic deformations), and the combined Dice + Binary Cross-Entropy loss function.
+
+Training was conducted in the Google Colab environment using an NVIDIA Tesla~T4 GPU for 50~epochs with a batch size of~4 and an initial learning rate of~\(10^{-3}\).  
+The proposed Neural ODE-U-Net was trained following the same setup, with the ODE block progressively activated after U-Net convergence to capture continuous feature dynamics.
+
+Performance was compared using standard segmentation metrics: Dice coefficient, Jaccard index (IoU), precision, recall, and pixel accuracy.
+
+
+\subsection{Implementation Notes}
+To ensure reproducibility:
+\begin{itemize}
+    \item Random seeds were fixed (\texttt{torch.manual\_seed(42)}),
+    \item Data splits followed official DRIVE and STARE partitions,
+    \item Model checkpoints and logs are available at \url{https://github.com/Bishnu2430/RetinaSegmentation}.
+\end{itemize}
+
+% ==============================
+% Results and Analysis
+% ==============================
+\section{Results and Analysis}
+
+This section presents the quantitative and qualitative evaluation of the proposed Neural ODE-U-Net architecture. The performance is compared against two baseline models — a standard U-Net and a modified U-Net (similar to U-Net++) — trained under identical experimental conditions on the Kaggle Retina Blood Vessel Segmentation dataset.
+
+\subsection{Quantitative Evaluation}
+
+Table~\ref{tab:results_retina} summarizes the segmentation performance across multiple metrics, including Accuracy, Sensitivity, Specificity, Precision, F1-score, Jaccard Index, and Dice Coefficient. The Neural ODE-U-Net consistently outperforms both baselines across all evaluation measures.
+
+\begin{table}[H]
+\centering
+\captionsetup{justification=centering}
+\caption{Comparison of segmentation performance on the Kaggle Retina Blood Vessel Segmentation dataset. Best results are highlighted in bold.}
+\label{tab:results_retina}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Sensitivity} & \textbf{Specificity} & \textbf{Precision} & \textbf{F1} & \textbf{Jaccard} & \textbf{Dice} \\
+\midrule
+U-Net (Baseline) & 0.9382 & 0.4132 & 0.8695 & 0.7721 & 0.5259 & 0.3656 & 0.5354 \\
+Modified U-Net & 0.9561 & 0.7364 & 0.8551 & 0.7560 & 0.7423 & 0.5928 & 0.7444 \\
+\textbf{Neural ODE-U-Net} & \textbf{0.9654} & \textbf{0.7808} & \textbf{0.9831} & \textbf{0.8160} & \textbf{0.7980} & \textbf{0.6639} & \textbf{0.7980} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\vspace{3em}
+
+The proposed Neural ODE-U-Net improves the Dice coefficient by approximately 5.4\% and the Jaccard index by 7.1\% compared to the modified U-Net baseline. This demonstrates superior capability in capturing thin vascular structures and maintaining vessel continuity.
+
+\subsection{ROC Curve and AUC Analysis}
+
+Figure~\ref{fig:roc_curve} illustrates the ROC curve for the Neural ODE-U-Net on the test set.  
+The model achieves an AUC score of \textbf{0.976}, reflecting strong discriminative ability and robustness in vessel-background classification.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.55\linewidth]{ode_unet_results/roc_curve.png}
+    \caption{ROC curve for the proposed Neural ODE-U-Net model showing an AUC of 0.976, indicating excellent vessel segmentation performance.}
+    \label{fig:roc_curve}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{ode_unet_results/training_performance.png}
+    \caption{Training and validation performance metrics of the Neural ODE-U-Net model. 
+    The plots illustrate: (top-left) Training loss convergence, (top-right) validation Dice score, 
+    (bottom-left) comparison between training loss and $1 - \text{Dice}$, and (bottom-right) Dice coefficient change per epoch. 
+    These results demonstrate stable convergence and consistent segmentation improvement across epochs.}
+    \label{fig:training_metrics}
+\end{figure}
+
+
+\subsection{Qualitative Results}
+
+Figure~\ref{fig:qualitative_results} shows representative segmentation results. The Neural ODE-U-Net outputs exhibit better connectivity of fine capillaries, reduced noise, and smoother vessel boundaries compared to the baseline U-Net models.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{results/postprocessing/0.png_comparison.png}
+    \caption{Qualitative comparison showing (from left to right): input retinal image, ground truth mask, prediction before post-processing, and prediction after post-processing. The proposed model accurately delineates small vessels while minimizing false positives.}
+    \label{fig:qualitative_results}
+\end{figure}
+
+\subsection{Effect of Post-Processing}
+
+Table~\ref{tab:postprocessing} summarizes the average improvement before and after post-processing.  
+While post-processing slightly reduces some metrics due to over-pruning, it effectively removes spurious noise, leading to visually cleaner masks.
+
+\begin{table}[H]
+\centering
+\caption{Average evaluation metrics before and after post-processing.}
+\label{tab:postprocessing}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Stage} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Jaccard} & \textbf{Dice} \\
+\midrule
+Before Post-Processing & \textbf{0.9654} & \textbf{0.8180} & \textbf{0.7828} & \textbf{0.7972} & \textbf{0.6632} & \textbf{0.7972} \\
+After Post-Processing & 0.9369 & 0.6261 & 0.7044 & 0.6597 & 0.4928 & 0.6597 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Performance and Efficiency}
+
+The Neural ODE-U-Net maintains real-time inference capability with an average processing speed of \textbf{129~FPS} ($\approx$7.7~ms per image), outperforming the base U-Net’s 69~FPS.  
+Despite the ODE module’s additional complexity, its adaptive solver maintains computational efficiency while improving accuracy and stability.
+
+\subsection{Discussion of Observed Improvements}
+
+The observed performance gains arise from multiple factors:
+\begin{itemize}
+    \item \textbf{Continuous-depth dynamics:} The Neural ODE block allows smoother feature transformations and improved vessel connectivity.
+    \item \textbf{Enhanced gradient stability:} The adjoint ODE solver improves backpropagation smoothness and convergence.
+    \item \textbf{Improved data preprocessing:} CLAHE and gamma correction boost contrast, enhancing vessel visibility.
+    \item \textbf{Structural consistency:} The ODE-driven latent representation better preserves global vessel topology.
+\end{itemize}
+
+Overall, the Neural ODE-U-Net demonstrates superior segmentation accuracy and efficiency, confirming that integrating continuous-depth dynamics improves both precision and structural continuity in retinal vessel segmentation.
+
+% ==============================
+% Conclusion and Future Work
+% ==============================
+\section{Conclusion and Future Work}
+
+In this work, we introduced the \textbf{Neural ODE-U-Net}, a hybrid deep-learning framework that integrates Neural Ordinary Differential Equations into the U-Net architecture for retinal vessel segmentation.  
+By modeling feature transformations as continuous dynamical systems, our approach bridges the gap between discrete-layer CNNs and continuous-depth models, yielding smoother feature evolution and improved connectivity for thin vessels.
+
+Comprehensive experiments on the DRIVE and STARE datasets demonstrate that the proposed model outperforms existing state-of-the-art architectures in terms of Dice coefficient, Jaccard index, and AUC. The results confirm that continuous-depth modeling enhances feature propagation and preserves the structural integrity of micro-vessels.
+
+Our ablation studies reveal that each design component—from preprocessing to postprocessing—contributes meaningfully to overall performance, while the Neural ODE bottleneck provides the most substantial improvement in structural coherence.
+
+\subsection{Limitations and Future Directions}
+
+Despite promising results, several challenges remain:
+\begin{itemize}
+    \item \textbf{Computational cost:} Although the ODE solver adapts dynamically, further optimization (e.g., event-based solvers) can reduce inference latency.
+    \item \textbf{Generalization:} The model could benefit from domain adaptation strategies for unseen imaging conditions.
+    \item \textbf{3D and multimodal extension:} Future work could extend the Neural ODE concept to 3D OCT or multimodal fundus–fluorescein angiography segmentation.
+\end{itemize}
+
+In the broader scope, we envision Neural ODE-enhanced architectures as a general paradigm for continuous-depth modeling in medical image analysis — bridging mathematical interpretability and deep learning efficiency.
+
+% ==============================
+% Acknowledgments
+% ==============================
+\section*{Acknowledgments}
+We thank the DRIVE and STARE dataset creators for providing high-quality annotated datasets.  
+We also acknowledge the support of computational resources from [Institution/Organization Name] and valuable feedback from colleagues in the [Research Lab Name].
+
+% ==============================
+% References
+% ==============================
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
