@@ -1,0 +1,53 @@
+%%{init: {'theme':'base', 'themeVariables': {
+  'primaryColor':'#e3f2fd','primaryTextColor':'#000','primaryBorderColor':'#1976d2',
+  'lineColor':'#424242','secondaryColor':'#f3e5f5','tertiaryColor':'#fff3e0'
+}}}%%
+
+flowchart TD
+    Start([Input Image H×W×3]):::inputStyle
+    
+    Prep["**PREPROCESSING**<br/>I' = I / 255<br/>Optional: Green = I<sub>g</sub><br/>CLAHE → L'(x,y) = clip(α·CDF·L<sub>max</sub>)<br/>Normalize: x̂ = (x - 0.5)/0.5<br/>→ Tensor (B,1,H,W)"]:::prepStyle
+    
+    subgraph Encoder[" ENCODER "]
+        E1["Block1: Conv3×3→BN→ReLU + Res<br/>(B,32,H,W) → MaxPool (B,32,H/2,W/2)"]:::encStyle
+        E2["Block2: Conv3×3→BN→ReLU + Res<br/>(B,64,H/2,W/2) → MaxPool (B,64,H/4,W/4)"]:::encStyle
+        E3["Block3: Conv3×3→BN→ReLU + Res<br/>(B,128,H/4,W/4) → MaxPool (B,128,H/8,W/8)"]:::encStyle
+        E1-->E2-->E3
+    end
+    
+    Bottleneck["**BOTTLENECK + NEURAL ODE**<br/>ConvBlock (B,256,H/8,W/8)<br/>ODE: dh/dt = f<sub>θ</sub>(h,t)<br/>h₁ = ODESolve(h₀, t∈[0,1])<br/>Solver: Dormand–Prince (RK45)"]:::bottleStyle
+    
+    subgraph Decoder[" DECODER "]
+        D3["UpConv + Skip(e3) → ConvBlock<br/>(B,128,H/4,W/4)"]:::decStyle
+        D2["UpConv + Skip(e2) → ConvBlock<br/>(B,64,H/2,W/2)"]:::decStyle
+        D1["UpConv + Skip(e1) → ConvBlock<br/>(B,32,H,W)"]:::decStyle
+        D3-->D2-->D1
+    end
+    
+    OUT["**Output Layer**<br/>1×1 Conv + Sigmoid<br/>P = σ(Wx + b) → (B,1,H,W) ∈ [0,1]"]:::outStyle
+    
+    Post["**POSTPROCESSING**<br/>Morph. Close: M' = (M⊕K)⊖K<br/>Vessel Enhance: CLAHE + Frangi<br/>Noise Remove: area < A<sub>min</sub><br/>Dilate: M'' = M'⊕K<br/>Final: M<sub>final</sub> > 0.5"]:::postStyle
+    
+    Final([**Binary Mask** H×W]):::finalStyle
+    
+    Loss["**Loss Function**<br/>L = −α·Dice − (1−α)·BCE<br/>Dice = 2|P∩G| / (|P|+|G|)"]:::lossStyle
+    
+    Start-->Prep-->Encoder-->Bottleneck-->Decoder-->OUT-->Post-->Final
+    Final-.->Loss
+    
+    E1-.->|skip|D1
+    E2-.->|skip|D2
+    E3-.->|skip|D3
+    
+    classDef inputStyle fill:#1976d2,stroke:#0d47a1,stroke-width:3px,color:#fff,font-weight:bold
+    classDef prepStyle fill:#4fc3f7,stroke:#0277bd,stroke-width:2px,color:#000,font-size:11px
+    classDef encStyle fill:#66bb6a,stroke:#2e7d32,stroke-width:2px,color:#fff,font-size:11px
+    classDef bottleStyle fill:#ffd54f,stroke:#f57f17,stroke-width:3px,color:#000,font-size:11px,font-weight:bold
+    classDef decStyle fill:#ff8a65,stroke:#d84315,stroke-width:2px,color:#fff,font-size:11px
+    classDef outStyle fill:#ff7043,stroke:#bf360c,stroke-width:2px,color:#fff,font-weight:bold,font-size:11px
+    classDef postStyle fill:#ba68c8,stroke:#6a1b9a,stroke-width:2px,color:#fff,font-size:11px
+    classDef finalStyle fill:#7b1fa2,stroke:#4a148c,stroke-width:3px,color:#fff,font-weight:bold,font-size:12px
+    classDef lossStyle fill:#ec407a,stroke:#880e4f,stroke-width:2px,color:#fff,font-size:11px
+    
+    style Encoder fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    style Decoder fill:#fbe9e7,stroke:#bf360c,stroke-width:2px
