@@ -63,7 +63,7 @@
 \vspace{0.5cm}
 {\large Under the Guidance of}\\
 {\large \textbf{Dr. Jyoti Prava Dash}}\\
-{\normalsize (Assistant Professor, Department of Computer Science and Engineering)}\\
+{\normalsize (Professor, Department of Computer Science and Engineering)}\\
 \vspace{0.5cm}
 {\normalsize Gandhi Institute of Excellent Technocrats, Bhubaneswar}\\
 {\normalsize \today}
@@ -75,7 +75,7 @@
 % Abstract
 % ==============================
 \begin{abstract}
-\noindent Accurate segmentation of retinal blood vessels remains a critical yet challenging task in computer-aided diagnosis of ophthalmological and cardiovascular diseases. Traditional convolutional neural networks, while effective, suffer from limitations inherent to their discrete-layer architectures, particularly in capturing the continuous, topology-preserving nature of vascular structures. In this work, we present a novel hybrid architecture that integrates Neural Ordinary Differential Equations (Neural ODEs) into the bottleneck of a U-Net encoder-decoder framework. By parameterizing feature transformations as continuous dynamical systems governed by differential equations, our approach enables smoother gradient flow, memory-efficient training, and enhanced preservation of fine-grained vessel connectivity. We evaluate our method on standard retinal fundus image datasets and demonstrate superior performance compared to conventional U-Net architectures, achieving significant improvements in Dice coefficient (0.7981), Jaccard index (0.6641), and sensitivity metrics. Furthermore, we provide comprehensive ablation studies demonstrating the contribution of each architectural component and postprocessing strategy. Our findings suggest that continuous-depth modeling offers a principled approach to biomedical image segmentation, with potential applications extending beyond retinal imaging to other vascular and tubular structure segmentation tasks.
+\noindent Accurate segmentation of retinal blood vessels remains a critical yet challenging task in computer-aided diagnosis of ophthalmological and cardiovascular diseases. Traditional convolutional neural networks, while effective, suffer from limitations inherent to their discrete-layer architectures, particularly in capturing the continuous, topology-preserving nature of vascular structures. In this work, we present a novel hybrid architecture that integrates Neural Ordinary Differential Equations (Neural ODEs) into the bottleneck of a U-Net encoder-decoder framework. By parameterizing feature transformations as continuous dynamical systems governed by differential equations, our approach enables smoother gradient flow, memory-efficient training, and enhanced preservation of fine-grained vessel connectivity. We evaluate our method on standard retinal fundus image datasets and demonstrate superior performance compared to conventional U-Net architectures, achieving significant improvements in Dice coefficient (0.7980), Jaccard index (0.6639), and sensitivity metrics. Furthermore, we provide comprehensive ablation studies demonstrating the contribution of each architectural component and postprocessing strategy. Our findings suggest that continuous-depth modeling offers a principled approach to biomedical image segmentation, with potential applications extending beyond retinal imaging to other vascular and tubular structure segmentation tasks.
 \end{abstract}
 
 \vspace{0.5cm}
@@ -170,7 +170,7 @@ Our proposed architecture consists of five main stages operating in sequence:
 
 \begin{figure}[H]
     \centering
-    \includegraphics[height=0.6\linewidth]{FlowChart_HD.png}
+    \includegraphics[height=1.2\linewidth]{FlowChart_HD.png}
     \caption{Complete Neural ODE-U-Net architecture showing the integration of preprocessing, encoder, Neural ODE bottleneck, decoder, and postprocessing stages. Skip connections (shown in blue) preserve spatial information across scales.}
     \label{fig:architecture}
 \end{figure}
@@ -514,13 +514,13 @@ Training followed a progressive two-stage process:
 
 Model performance was evaluated using:
 \begin{itemize}
-    \item \textbf{Accuracy} \(=\frac{TP+TN}{TP+TN+FP+FN}\),
-    \item \textbf{Sensitivity (Recall)} \(=\frac{TP}{TP+FN}\),
-    \item \textbf{Specificity} \(=\frac{TN}{TN+FP}\),
-    \item \textbf{Precision} \(=\frac{TP}{TP+FP}\),
-    \item \textbf{F1-Score} \(=2\frac{Precision\times Recall}{Precision+Recall}\),
-    \item \textbf{Jaccard Index (IoU)} \(=\frac{TP}{TP+FP+FN}\),
-    \item \textbf{Dice Coefficient} \(=\frac{2TP}{2TP+FP+FN}\),
+    \item \textbf{Accuracy} \(=\frac{TP+TN}{TP+TN+FP+FN}\)
+    \item \textbf{Sensitivity (Recall)} \(=\frac{TP}{TP+FN}\)
+    \item \textbf{Specificity} \(=\frac{TN}{TN+FP}\)
+    \item \textbf{Precision} \(=\frac{TP}{TP+FP}\)
+    \item \textbf{F1-Score} \(=2\frac{Precision\times Recall}{Precision+Recall}\)
+    \item \textbf{Jaccard Index (IoU)} \(=\frac{TP}{TP+FP+FN}\)
+    \item \textbf{Dice Coefficient} \(=\frac{2TP}{2TP+FP+FN}\)
     \item \textbf{AUC (ROC)} — area under receiver-operating-characteristic curve.
 \end{itemize}
 where \(TP, TN, FP, FN\) denote true positives, true negatives, false positives, and false negatives respectively.
@@ -598,7 +598,7 @@ The model achieves an AUC score of \textbf{0.976}, reflecting strong discriminat
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\linewidth]{ode_unet_results/training_performance.png}
+    \includegraphics[height=0.6\linewidth]{ode_unet_results/training_performance.png}
     \caption{Training and validation performance metrics of the Neural ODE-U-Net model. 
     The plots illustrate: (top-left) Training loss convergence, (top-right) validation Dice score, 
     (bottom-left) comparison between training loss and $1 - \text{Dice}$, and (bottom-right) Dice coefficient change per epoch. 
@@ -682,7 +682,6 @@ In the broader scope, we envision Neural ODE-enhanced architectures as a general
 % ==============================
 \section*{Acknowledgments}
 We thank the DRIVE and STARE dataset creators for providing high-quality annotated datasets.  
-We also acknowledge the support of computational resources from [Institution/Organization Name] and valuable feedback from colleagues in the [Research Lab Name].
 
 % ==============================
 % References
