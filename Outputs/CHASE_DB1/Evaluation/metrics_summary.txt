@@ -1,7 +1,25 @@
-Accuracy : 0.0778
-Precision: 0.0778
-Recall   : 1.0000
-F1 Score : 0.1444
-IoU      : 0.0778
-Dice     : 0.1444
-AUC      : 0.9757
+======================================================================
+CHASE_DB1 - Neural ODE U-Net Evaluation Metrics
+======================================================================
+
+VALIDATION SET METRICS:
+----------------------------------------------------------------------
+Accuracy    : 0.9711
+Precision   : 0.8794
+Recall      : 0.7286
+Specificity : 0.9916
+F1 Score    : 0.7969
+IoU         : 0.6624
+Dice        : 0.7969
+AUC         : 0.9757
+
+TRAINING SET METRICS:
+----------------------------------------------------------------------
+Accuracy    : 0.9710
+Precision   : 0.8592
+Recall      : 0.7107
+Specificity : 0.9910
+F1 Score    : 0.7779
+IoU         : 0.6365
+Dice        : 0.7779
+AUC         : 0.9688

@@ -1,8 +1,0 @@
-CHASE_DB1 Evaluation Summary
-Mean Dice: 0.1331
-Mean IoU: 0.0713
-Mean Accuracy: 0.0713
-Mean Precision: 0.0713
-Mean Recall: 1.0000
-Mean F1: 0.1331
-AUC: 0.9700
