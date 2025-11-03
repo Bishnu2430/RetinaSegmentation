@@ -1,0 +1,29 @@
+HARDWARE
+
+•	CPU: Typically 2 to 8 virtual CPUs (vCPUs), generally Intel Xeon family.
+•	RAM: Around 12 to 16 GB available to the runtime.
+•	GPU: NVIDIA Tesla T4 (16 GB GDDR6 VRAM)
+
+Epoch 80 each
+
+DRIVE
+Time: 5M 10S
+Train Loss: 0.1583
+
+STARE
+Time: 3M 47S
+Train Loss: 0.1522
+
+CHASE
+Time: 3M 53S
+Train Loss: 0.2682
+
+ 		DRIVE	CHASE	STARE
+Accuracy	0.964	0.971	0.966
+Precision	0.787	0.879	0.778
+Recall		0.746	0.729	0.787
+Specificity	0.807	0.992	0.981
+F1-Score	0.797	0.797	0.783
+IoU		0.87	0.662	0.643
+Dice		0.797	0.797	0.783
+AUC		0.978	0.976	0.978

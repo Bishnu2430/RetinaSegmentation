@@ -45,3 +45,7 @@ Thumbs.db
 
 
 # Note: *.pth files are tracked via Git LFS (see .gitattributes)
+
+node_modules/
+package.json
+package-lock.json

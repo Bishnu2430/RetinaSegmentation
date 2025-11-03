@@ -1,0 +1,101 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#fff','primaryTextColor':'#000','primaryBorderColor':'#000','lineColor':'#000','secondaryColor':'#fff','tertiaryColor':'#fff','clusterBkg':'#fff','clusterBorder':'#000','edgeLabelBackground':'#fff'}}}%%
+graph LR
+    Start([RGB Image]) --> Pre
+    Pre --> Enc
+    Enc --> Bot
+    Bot --> Dec
+    Dec --> Out
+    Out --> Pred[Mask]
+    
+    Pred --> Los
+    GT[Ground Truth] --> Los
+    Los --> End([Model])
+    
+    subgraph Pre[" Preprocessing "]
+        direction TB
+        P1[Green + CLAHE]
+        P2[Gamma + Normalize]
+        P3[Tensor 1xHxW]
+        P1 --> P2 --> P3
+    end
+    
+    subgraph Enc[" Encoder "]
+        direction TB
+        E1[Conv 1→32 + Pool]
+        E2[Conv 32→64 + Pool]
+        E3[Conv 64→128 + Pool]
+        E1 --> E2 --> E3
+        E1 -.-> D1
+        E2 -.-> D2
+        E3 -.-> D3
+    end
+    
+    subgraph Bot[" Neural ODE Bottleneck "]
+        direction TB
+        BN1[Conv 128→256]
+        BN2[ODE: dX/dt=f_θ]
+        BN3[RK4 + Residual]
+        BN1 --> BN2 --> BN3
+    end
+    
+    subgraph Dec[" Decoder "]
+        direction TB
+        D3[Up 256→128 + Skip]
+        D2[Up 128→64 + Skip]
+        D1[Up 64→32 + Skip]
+        D3 --> D2 --> D1
+    end
+    
+    subgraph Out[" Output "]
+        direction TB
+        O1[Conv 1x1]
+        O2[Sigmoid]
+        O1 --> O2
+    end
+    
+    subgraph Los[" Loss Function "]
+        direction TB
+        L1[BCE]
+        L2[Dice]
+        L3[Skeleton]
+        L4[0.4·BCE+0.4·Dice+0.2·Skel]
+        L1 --> L4
+        L2 --> L4
+        L3 --> L4
+    end
+    
+    style Start fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style Pred fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    style GT fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style End fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    
+    style Pre fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style Enc fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style Bot fill:#ffebee,stroke:#d32f2f,stroke-width:2px
+    style Dec fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style Out fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+    style Los fill:#f1f8e9,stroke:#558b2f,stroke-width:2px
+    
+    style P1 fill:#fffbf0,stroke:#f57c00
+    style P2 fill:#fffbf0,stroke:#f57c00
+    style P3 fill:#fffbf0,stroke:#f57c00
+    
+    style E1 fill:#faf5ff,stroke:#7b1fa2
+    style E2 fill:#faf5ff,stroke:#7b1fa2
+    style E3 fill:#faf5ff,stroke:#7b1fa2
+    
+    style BN1 fill:#fff5f5,stroke:#d32f2f
+    style BN2 fill:#fff5f5,stroke:#d32f2f
+    style BN3 fill:#fff5f5,stroke:#d32f2f
+    
+    style D1 fill:#f1f8f4,stroke:#388e3c
+    style D2 fill:#f1f8f4,stroke:#388e3c
+    style D3 fill:#f1f8f4,stroke:#388e3c
+    
+    style O1 fill:#f0f9f8,stroke:#00796b
+    style O2 fill:#f0f9f8,stroke:#00796b
+    
+    style L1 fill:#f8faf5,stroke:#558b2f
+    style L2 fill:#f8faf5,stroke:#558b2f
+    style L3 fill:#f8faf5,stroke:#558b2f
+    style L4 fill:#f8faf5,stroke:#558b2f
