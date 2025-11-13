@@ -1,21 +1,23 @@
-Copyright (c) 2025 Bishnu Prasad Kar
+Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)
+License for: RetinaSegmentation
+Copyright © 2025 Bishnu Prasad Kar
 
-All rights reserved.
+This work is licensed under the Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License.
 
-This project and all files contained within are the exclusive property of the copyright holder.  
-No part of this project may be copied, reproduced, modified, published, uploaded, posted,
-transmitted, or distributed in any form or by any means, without prior written permission from the author.
+You are free to:
 
-Permission is NOT granted for:
+- Share — copy and redistribute the material in any medium or format
 
-- Reuse of the code in personal or commercial projects
-- Modification or redistribution of any part of the project
-- Creation of derivative works
-- Hosting, mirroring, or republishing the project
-- Incorporating any portion of the code into other software
+Under the following terms:
 
-The project is provided for **viewing purposes only**.
+Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
 
-Any unauthorized use of this material is strictly prohibited and may result in legal action.
+NonCommercial — You may not use the material for commercial purposes.
 
-For inquiries about special permissions, contact: karbishnu2430@gmail.com.
+NoDerivatives — If you remix, transform, or build upon the material, you may not distribute the modified material.
+
+No Additional Restrictions — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+
+Full License Text:
+This is a human-readable summary of the license. The full legal code can be found at:
+https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
